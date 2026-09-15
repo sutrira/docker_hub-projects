@@ -260,7 +260,8 @@ jobs:
       # Step E: Synchronize README.md to Docker Hub Description
       - name: Sync README to Docker Hub Description
         if: steps.meta.outputs.should_push == 'true'
-        uses: peter-evans/dockerhub-description@v4
+        continue-on-error: true
+        uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME || vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
