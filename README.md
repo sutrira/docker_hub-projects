@@ -1,4 +1,4 @@
-# Docker Hub Projects (`sutrira`)
+# Docker Hub Projects
 
 [![Docker Hub Organization](https://img.shields.io/badge/Docker%20Hub-sutrira-blue.svg?logo=docker&style=flat-square)](https://hub.docker.com/orgs/sutrira)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-sutrira%2Fdocker__hub--projects-blue?style=flat-square&logo=github)](https://github.com/sutrira/docker_hub-projects)
