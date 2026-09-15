@@ -1,0 +1,48 @@
+# ==============================================================================
+# Central Docker Build & Publishing Configuration
+# ==============================================================================
+# This file externalizes shared properties, namespaces, tags, and architectures
+# across all Docker builds, local build scripts, and the GitHub Actions CI/CD pipeline.
+# ==============================================================================
+
+# Docker Hub Registry & Namespace
+DOCKER_REGISTRY=docker.io
+DOCKERHUB_NAMESPACE=sutrira
+
+# GitHub Repository Reference
+GITHUB_REPO_URL=git@github.com:sutrira/docker_hub-projects.git
+GITHUB_HTTP_URL=https://github.com/sutrira/docker_hub-projects
+MAINTAINER=sutrira
+
+# Base Operating System Image
+ALPINE_VERSION=3.24.1
+BASE_IMAGE=alpine:3.24.1
+
+# Target Multi-Architecture Platforms
+DEFAULT_PLATFORMS=linux/amd64,linux/arm64
+
+# ------------------------------------------------------------------------------
+# Image Specifications & Package Patch Levels (Alpine 3.24.1 official APK channel)
+# ------------------------------------------------------------------------------
+
+# OpenJDK 17
+OPENJDK17_IMAGE=openjdk17
+OPENJDK17_PKG_VERSION=17.0.20_p8-r0
+OPENJDK17_TAG=17.0.20_p8-r0
+
+# OpenJDK 21
+OPENJDK21_IMAGE=openjdk21
+OPENJDK21_PKG_VERSION=21.0.12_p8-r0
+OPENJDK21_TAG=21.0.12_p8-r0
+
+# OpenJDK 25
+OPENJDK25_IMAGE=openjdk25
+OPENJDK25_PKG_VERSION=25.0.4_p7-r0
+OPENJDK25_TAG=25.0.4_p7-r0
+
+# ------------------------------------------------------------------------------
+# CI/CD Security & Cache Configuration
+# ------------------------------------------------------------------------------
+TRIVY_SEVERITY=HIGH,CRITICAL
+TRIVY_IGNORE_UNFIXED=true
+BUILD_CACHE_TYPE=gha

@@ -1,0 +1,270 @@
+name: Build, Scan & Publish Multi-Arch Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'openjdk17/**'
+      - 'openjdk21/**'
+      - 'openjdk25/**'
+      - '.dockerenv'
+      - '.github/workflows/docker-build-publish.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'openjdk17/**'
+      - 'openjdk21/**'
+      - 'openjdk25/**'
+      - '.dockerenv'
+      - '.github/workflows/docker-build-publish.yml'
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Select Docker image to build (or all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - openjdk17
+          - openjdk21
+          - openjdk25
+      push:
+        description: 'Publish images to Docker Hub (disabled for dry runs)'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Detect Changed Image Directories
+  # Rebuilds and publishes ONLY the modified images, leaving others untouched.
+  # ----------------------------------------------------------------------------
+  detect-changes:
+    name: Detect Changed Images
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Path Filter for Image Directories
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            openjdk17:
+              - 'openjdk17/**'
+            openjdk21:
+              - 'openjdk21/**'
+            openjdk25:
+              - 'openjdk25/**'
+            global:
+              - '.dockerenv'
+              - '.github/workflows/docker-build-publish.yml'
+
+      - name: Compute Build Matrix
+        id: set-matrix
+        run: |
+          EVENT="${{ github.event_name }}"
+          DISPATCH_IMAGE="${{ github.event.inputs.image }}"
+          GLOBAL_CHANGED="${{ steps.filter.outputs.global }}"
+
+          IMAGES=()
+
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ "$DISPATCH_IMAGE" = "all" ]; then
+              IMAGES=("openjdk17" "openjdk21" "openjdk25")
+            else
+              IMAGES=("$DISPATCH_IMAGE")
+            fi
+          elif [ "$GLOBAL_CHANGED" = "true" ]; then
+            echo "Global files or .dockerenv changed. Triggering all images."
+            IMAGES=("openjdk17" "openjdk21" "openjdk25")
+          else
+            if [ "${{ steps.filter.outputs.openjdk17 }}" = "true" ]; then
+              IMAGES+=("openjdk17")
+            fi
+            if [ "${{ steps.filter.outputs.openjdk21 }}" = "true" ]; then
+              IMAGES+=("openjdk21")
+            fi
+            if [ "${{ steps.filter.outputs.openjdk25 }}" = "true" ]; then
+              IMAGES+=("openjdk25")
+            fi
+          fi
+
+          # Format array as JSON
+          if [ ${#IMAGES[@]} -eq 0 ]; then
+            echo "No image changes detected."
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            JSON_ARRAY=$(printf '%s\n' "${IMAGES[@]}" | jq -R . | jq -s -c .)
+            echo "Selected images to build: $JSON_ARRAY"
+            echo "matrix=$JSON_ARRAY" >> "$GITHUB_OUTPUT"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Build, Scan & Publish
+  # Runs concurrently across the detected matrix of images
+  # ----------------------------------------------------------------------------
+  build-scan-publish:
+    name: Build & Publish (${{ matrix.image }})
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+
+    env:
+      DOCKERHUB_NAMESPACE: 'sutrira'
+      DEFAULT_PLATFORMS: 'linux/amd64,linux/arm64'
+      TRIVY_SEVERITY: 'HIGH,CRITICAL'
+      TRIVY_IGNORE_UNFIXED: 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load .dockerenv configuration
+        run: |
+          if [ -f .dockerenv ]; then
+            echo "Loading configuration from .dockerenv"
+            # Strip comments and export key-values to GITHUB_ENV
+            grep -E '^[A-Za-z0-9_]+=' .dockerenv >> "$GITHUB_ENV"
+          else
+            echo "::warning ::.dockerenv file not found, using defaults"
+          fi
+
+      - name: Resolve Image Metadata and Tags
+        id: meta
+        run: |
+          IMAGE_NAME="${{ matrix.image }}"
+          NAMESPACE="${DOCKERHUB_NAMESPACE:-sutrira}"
+          REPO="${NAMESPACE}/${IMAGE_NAME}"
+
+          # Extract image-specific tag from .dockerenv
+          case "$IMAGE_NAME" in
+            openjdk17)
+              VERSION_TAG="${OPENJDK17_TAG:-17.0.20_p8-r0}"
+              ;;
+            openjdk21)
+              VERSION_TAG="${OPENJDK21_TAG:-21.0.12_p8-r0}"
+              ;;
+            openjdk25)
+              VERSION_TAG="${OPENJDK25_TAG:-25.0.4_p7-r0}"
+              ;;
+            *)
+              VERSION_TAG="latest"
+              ;;
+          esac
+
+          # Extract major version number (e.g. 17, 21, 25)
+          MAJOR="${IMAGE_NAME//[!0-9]/}"
+
+          # Compose tag list including version tag, major tag, and latest
+          if [ -n "$MAJOR" ]; then
+            TAGS="${REPO}:${VERSION_TAG},${REPO}:${MAJOR},${REPO}:latest"
+          else
+            TAGS="${REPO}:${VERSION_TAG},${REPO}:latest"
+          fi
+
+          # Determine whether to push
+          SHOULD_PUSH="false"
+          if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "${{ github.event_name }}" != "pull_request" ]; then
+            if [ "${{ github.event_name }}" != "workflow_dispatch" ] || [ "${{ github.event.inputs.push }}" = "true" ]; then
+              SHOULD_PUSH="true"
+            fi
+          fi
+
+          echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+          echo "should_push=$SHOULD_PUSH" >> "$GITHUB_OUTPUT"
+          echo "platforms=${DEFAULT_PLATFORMS:-linux/amd64,linux/arm64}" >> "$GITHUB_OUTPUT"
+          echo "severity=${TRIVY_SEVERITY:-HIGH,CRITICAL}" >> "$GITHUB_OUTPUT"
+          echo "ignore_unfixed=${TRIVY_IGNORE_UNFIXED:-true}" >> "$GITHUB_OUTPUT"
+
+          echo "Repository:   $REPO"
+          echo "Version Tag:  $VERSION_TAG"
+          echo "All Tags:     $TAGS"
+          echo "Should Push:  $SHOULD_PUSH"
+
+      - name: Set up QEMU (Multi-Architecture)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate with Docker Hub
+        if: steps.meta.outputs.should_push == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Step A: Build and load local single-arch image for vulnerability scanning
+      - name: Build local image for vulnerability scan
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.image }}
+          file: ./${{ matrix.image }}/Dockerfile
+          load: true
+          tags: local/${{ matrix.image }}:scan
+          cache-from: type=gha
+
+      # Step B: Run Trivy Vulnerability Scanner
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: local/${{ matrix.image }}:scan
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: ${{ steps.meta.outputs.severity }}
+          ignore-unfixed: ${{ steps.meta.outputs.ignore_unfixed }}
+
+      # Step C: Upload Trivy scan results to GitHub Code Scanning
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      # Step D: Multi-Architecture Build & Push
+      - name: Build and Push Multi-Arch Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.image }}
+          file: ./${{ matrix.image }}/Dockerfile
+          platforms: ${{ steps.meta.outputs.platforms }}
+          push: ${{ steps.meta.outputs.should_push == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Step E: Synchronize README.md to Docker Hub Description
+      - name: Sync README to Docker Hub Description
+        if: steps.meta.outputs.should_push == 'true'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ steps.meta.outputs.repo }}
+          readme-filepath: ./${{ matrix.image }}/README.md
+          short-description: "Lightweight, multi-architecture OpenJDK ${{ matrix.image }} on Alpine Linux 3.24.1"
+          enable-url-completion: true
