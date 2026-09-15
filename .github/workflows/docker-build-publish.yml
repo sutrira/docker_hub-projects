@@ -220,7 +220,7 @@ jobs:
 
       # Step A: Build and load local single-arch image for vulnerability scanning
       - name: Build local image for vulnerability scan
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./${{ matrix.image }}
           file: ./${{ matrix.image }}/Dockerfile
@@ -230,7 +230,7 @@ jobs:
 
       # Step B: Run Trivy Vulnerability Scanner
       - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: local/${{ matrix.image }}:scan
           format: 'sarif'
@@ -247,7 +247,7 @@ jobs:
 
       # Step D: Multi-Architecture Build & Push
       - name: Build and Push Multi-Arch Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./${{ matrix.image }}
           file: ./${{ matrix.image }}/Dockerfile
