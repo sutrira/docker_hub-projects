@@ -17,7 +17,7 @@ All images in this repository are based on **Alpine Linux 3.24.1** for minimal d
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`sutrira/openjdk17`** | `17.0.20_p8-r0` (LTS) | Alpine 3.24.1 | `linux/amd64`, `linux/arm64` | [![Docker Pulls](https://img.shields.io/docker/pulls/sutrira/openjdk17?style=flat-square&label=pulls)](https://hub.docker.com/r/sutrira/openjdk17) | [openjdk17](openjdk17) |
 | **`sutrira/openjdk21`** | `21.0.12_p8-r0` (LTS) | Alpine 3.24.1 | `linux/amd64`, `linux/arm64` | [![Docker Pulls](https://img.shields.io/docker/pulls/sutrira/openjdk21?style=flat-square&label=pulls)](https://hub.docker.com/r/sutrira/openjdk21) | [openjdk21](openjdk21) |
-| **`sutrira/openjdk25`** | `25.0.4_p7-r0` | Alpine 3.24.1 | `linux/amd64`, `linux/arm64` | [![Docker Pulls](https://img.shields.io/docker/pulls/sutrira/openjdk25?style=flat-square&label=pulls)](https://hub.docker.com/r/sutrira/openjdk25) | [openjdk25](openjdk25) |
+| **`sutrira/openjdk25`** | `25.0.4_p7-r0` (LTS) | Alpine 3.24.1 | `linux/amd64`, `linux/arm64` | [![Docker Pulls](https://img.shields.io/docker/pulls/sutrira/openjdk25?style=flat-square&label=pulls)](https://hub.docker.com/r/sutrira/openjdk25) | [openjdk25](openjdk25) |
 
 ---
 
