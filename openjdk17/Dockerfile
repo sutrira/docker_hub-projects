@@ -3,6 +3,7 @@
 FROM alpine:3.24.1
 
 RUN ["apk", "update"]
+RUN ["apk", "upgrade", "--no-cache"]
 
 # Using Open JDK 17.0.20_p8-r0
 RUN ["apk", "add", "--no-cache", "openjdk17-jdk=17.0.20_p8-r0"]
