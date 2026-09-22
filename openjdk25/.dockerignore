@@ -1,0 +1,7 @@
+# Documentation & build scripts
+*.md
+build.sh
+
+# OS & Editor artifacts
+.DS_Store
+*.swp

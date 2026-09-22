@@ -21,12 +21,14 @@ fi
 NAMESPACE="${DOCKERHUB_NAMESPACE:-sutrira}"
 IMAGE_NAME="${OPENJDK17_IMAGE:-openjdk17}"
 TAG="${OPENJDK17_TAG:-17.0.20_p8-r0}"
+BASE_IMG="${BASE_IMAGE:-alpine:3.24.1}"
 PLATFORMS="${DEFAULT_PLATFORMS:-linux/amd64,linux/arm64}"
 
 FULL_IMAGE="${NAMESPACE}/${IMAGE_NAME}"
 
 echo "============================================================"
 echo "Building ${FULL_IMAGE}:${TAG} and ${FULL_IMAGE}:latest"
+echo "Base Image:       ${BASE_IMG}"
 echo "Target Platforms: ${PLATFORMS}"
 echo "Context:          ${SCRIPT_DIR}"
 echo "============================================================"
@@ -39,6 +41,8 @@ fi
 
 docker buildx build \
     --platform "${PLATFORMS}" \
+    --build-arg BASE_IMAGE="${BASE_IMG}" \
+    --build-arg OPENJDK_VERSION="${TAG}" \
     --tag "${FULL_IMAGE}:${TAG}" \
     --tag "${FULL_IMAGE}:latest" \
     -f "${SCRIPT_DIR}/Dockerfile" \

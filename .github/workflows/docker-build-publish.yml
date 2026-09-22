@@ -194,6 +194,7 @@ jobs:
 
           echo "repo=$REPO" >> "$GITHUB_OUTPUT"
           echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          echo "base_image=${BASE_IMAGE:-alpine:3.24.1}" >> "$GITHUB_OUTPUT"
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
           echo "should_push=$SHOULD_PUSH" >> "$GITHUB_OUTPUT"
           echo "platforms=${DEFAULT_PLATFORMS:-linux/amd64,linux/arm64}" >> "$GITHUB_OUTPUT"
@@ -202,6 +203,7 @@ jobs:
 
           echo "Repository:   $REPO"
           echo "Version Tag:  $VERSION_TAG"
+          echo "Base Image:   ${BASE_IMAGE:-alpine:3.24.1}"
           echo "All Tags:     $TAGS"
           echo "Should Push:  $SHOULD_PUSH"
 
@@ -226,6 +228,9 @@ jobs:
           file: ./${{ matrix.image }}/Dockerfile
           load: true
           tags: local/${{ matrix.image }}:scan
+          build-args: |
+            BASE_IMAGE=${{ steps.meta.outputs.base_image }}
+            OPENJDK_VERSION=${{ steps.meta.outputs.version_tag }}
           cache-from: type=gha
 
       # Step B: Run Trivy Vulnerability Scanner
@@ -254,6 +259,9 @@ jobs:
           platforms: ${{ steps.meta.outputs.platforms }}
           push: ${{ steps.meta.outputs.should_push == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            BASE_IMAGE=${{ steps.meta.outputs.base_image }}
+            OPENJDK_VERSION=${{ steps.meta.outputs.version_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
