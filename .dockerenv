@@ -14,7 +14,7 @@ GITHUB_REPO_URL=git@github.com:sutrira/docker_hub-projects.git
 GITHUB_HTTP_URL=https://github.com/sutrira/docker_hub-projects
 MAINTAINER=sutrira
 
-# Base Operating System Image
+# Base Operating System Image (100% Alpine Linux based)
 ALPINE_VERSION=3.24.1
 BASE_IMAGE=alpine:3.24.1
 
@@ -22,23 +22,24 @@ BASE_IMAGE=alpine:3.24.1
 DEFAULT_PLATFORMS=linux/amd64,linux/arm64
 
 # ------------------------------------------------------------------------------
-# Image Specifications & Package Patch Levels (Alpine 3.24.1 official APK channel)
+# Consolidated Repository Namespaces on Docker Hub
 # ------------------------------------------------------------------------------
+REPO_JDK=openjdk
+REPO_JRE=openjdk-jre
 
-# OpenJDK 17
-OPENJDK17_IMAGE=openjdk17
-OPENJDK17_PKG_VERSION=17.0.20_p8-r0
-OPENJDK17_TAG=17.0.20_p8-r0
+# ------------------------------------------------------------------------------
+# Active LTS Releases & Package Versions (Alpine 3.24.1 APK channel)
+# ------------------------------------------------------------------------------
+# Default LTS Version (receives the :latest tag)
+LATEST_LTS=25
 
-# OpenJDK 21
-OPENJDK21_IMAGE=openjdk21
-OPENJDK21_PKG_VERSION=21.0.12_p8-r0
-OPENJDK21_TAG=21.0.12_p8-r0
+# OpenJDK 21 (LTS)
+JAVA21_VERSION=21.0.12_p8-r0
+JAVA21_MAJOR=21
 
-# OpenJDK 25
-OPENJDK25_IMAGE=openjdk25
-OPENJDK25_PKG_VERSION=25.0.4_p7-r0
-OPENJDK25_TAG=25.0.4_p7-r0
+# OpenJDK 25 (LTS)
+JAVA25_VERSION=25.0.4_p7-r0
+JAVA25_MAJOR=25
 
 # ------------------------------------------------------------------------------
 # CI/CD Security & Cache Configuration

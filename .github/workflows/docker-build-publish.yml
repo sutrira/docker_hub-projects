@@ -5,32 +5,33 @@ on:
     branches:
       - main
     paths:
-      - 'openjdk17/**'
-      - 'openjdk21/**'
-      - 'openjdk25/**'
+      - 'openjdk/**'
+      - 'openjdk-jre/**'
       - '.dockerenv'
       - '.github/workflows/docker-build-publish.yml'
   pull_request:
     branches:
       - main
     paths:
-      - 'openjdk17/**'
-      - 'openjdk21/**'
-      - 'openjdk25/**'
+      - 'openjdk/**'
+      - 'openjdk-jre/**'
       - '.dockerenv'
       - '.github/workflows/docker-build-publish.yml'
   workflow_dispatch:
     inputs:
-      image:
-        description: 'Select Docker image to build (or all)'
+      target:
+        description: 'Select target to build (or all)'
         required: true
         default: 'all'
         type: choice
         options:
           - all
-          - openjdk17
-          - openjdk21
-          - openjdk25
+          - openjdk-all
+          - openjdk-jre-all
+          - openjdk-21
+          - openjdk-25
+          - openjdk-jre-21
+          - openjdk-jre-25
       push:
         description: 'Publish images to Docker Hub (disabled for dry runs)'
         required: true
@@ -47,11 +48,11 @@ permissions:
 
 jobs:
   # ----------------------------------------------------------------------------
-  # Job 1: Detect Changed Image Directories
-  # Rebuilds and publishes ONLY the modified images, leaving others untouched.
+  # Job 1: Detect Changed Directories & Targets
+  # Computes matrix of targets to build based on file diffs or manual dispatch.
   # ----------------------------------------------------------------------------
   detect-changes:
-    name: Detect Changed Images
+    name: Detect Changed Targets
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -65,12 +66,18 @@ jobs:
         uses: dorny/paths-filter@v4
         with:
           filters: |
-            openjdk17:
-              - 'openjdk17/**'
-            openjdk21:
-              - 'openjdk21/**'
-            openjdk25:
-              - 'openjdk25/**'
+            openjdk_21:
+              - 'openjdk/21/**'
+            openjdk_25:
+              - 'openjdk/25/**'
+            openjdk_jre_21:
+              - 'openjdk-jre/21/**'
+            openjdk_jre_25:
+              - 'openjdk-jre/25/**'
+            openjdk_docs:
+              - 'openjdk/README.md'
+            openjdk_jre_docs:
+              - 'openjdk-jre/README.md'
             global:
               - '.dockerenv'
               - '.github/workflows/docker-build-publish.yml'
@@ -79,56 +86,92 @@ jobs:
         id: set-matrix
         run: |
           EVENT="${{ github.event_name }}"
-          DISPATCH_IMAGE="${{ github.event.inputs.image }}"
+          DISPATCH_TARGET="${{ github.event.inputs.target }}"
           GLOBAL_CHANGED="${{ steps.filter.outputs.global }}"
 
-          IMAGES=()
+          # Source version info from .dockerenv if available
+          if [ -f .dockerenv ]; then
+            set -a
+            # shellcheck disable=SC1091
+            source .dockerenv
+            set +a
+          fi
+
+          V21="${JAVA21_VERSION:-21.0.12_p8-r0}"
+          V25="${JAVA25_VERSION:-25.0.4_p7-r0}"
+
+          TARGET_OPENJDK_21="{\"id\":\"openjdk-21\",\"repo\":\"openjdk\",\"type\":\"jdk\",\"version\":\"21\",\"pkg_version\":\"$V21\",\"dir\":\"openjdk/21\",\"is_latest\":false}"
+          TARGET_OPENJDK_25="{\"id\":\"openjdk-25\",\"repo\":\"openjdk\",\"type\":\"jdk\",\"version\":\"25\",\"pkg_version\":\"$V25\",\"dir\":\"openjdk/25\",\"is_latest\":true}"
+          TARGET_OPENJDK_JRE_21="{\"id\":\"openjdk-jre-21\",\"repo\":\"openjdk-jre\",\"type\":\"jre\",\"version\":\"21\",\"pkg_version\":\"$V21\",\"dir\":\"openjdk-jre/21\",\"is_latest\":false}"
+          TARGET_OPENJDK_JRE_25="{\"id\":\"openjdk-jre-25\",\"repo\":\"openjdk-jre\",\"type\":\"jre\",\"version\":\"25\",\"pkg_version\":\"$V25\",\"dir\":\"openjdk-jre/25\",\"is_latest\":true}"
+
+          SELECTED=()
 
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            if [ "$DISPATCH_IMAGE" = "all" ]; then
-              IMAGES=("openjdk17" "openjdk21" "openjdk25")
-            else
-              IMAGES=("$DISPATCH_IMAGE")
-            fi
+            case "$DISPATCH_TARGET" in
+              all)
+                SELECTED+=("$TARGET_OPENJDK_21" "$TARGET_OPENJDK_25" "$TARGET_OPENJDK_JRE_21" "$TARGET_OPENJDK_JRE_25")
+                ;;
+              openjdk-all)
+                SELECTED+=("$TARGET_OPENJDK_21" "$TARGET_OPENJDK_25")
+                ;;
+              openjdk-jre-all)
+                SELECTED+=("$TARGET_OPENJDK_JRE_21" "$TARGET_OPENJDK_JRE_25")
+                ;;
+              openjdk-21)
+                SELECTED+=("$TARGET_OPENJDK_21")
+                ;;
+              openjdk-25)
+                SELECTED+=("$TARGET_OPENJDK_25")
+                ;;
+              openjdk-jre-21)
+                SELECTED+=("$TARGET_OPENJDK_JRE_21")
+                ;;
+              openjdk-jre-25)
+                SELECTED+=("$TARGET_OPENJDK_JRE_25")
+                ;;
+            esac
           elif [ "$GLOBAL_CHANGED" = "true" ]; then
-            echo "Global files or .dockerenv changed. Triggering all images."
-            IMAGES=("openjdk17" "openjdk21" "openjdk25")
+            echo "Global configuration or workflow modified. Triggering all targets."
+            SELECTED+=("$TARGET_OPENJDK_21" "$TARGET_OPENJDK_25" "$TARGET_OPENJDK_JRE_21" "$TARGET_OPENJDK_JRE_25")
           else
-            if [ "${{ steps.filter.outputs.openjdk17 }}" = "true" ]; then
-              IMAGES+=("openjdk17")
+            if [ "${{ steps.filter.outputs.openjdk_21 }}" = "true" ]; then
+              SELECTED+=("$TARGET_OPENJDK_21")
             fi
-            if [ "${{ steps.filter.outputs.openjdk21 }}" = "true" ]; then
-              IMAGES+=("openjdk21")
+            if [ "${{ steps.filter.outputs.openjdk_25 }}" = "true" ] || [ "${{ steps.filter.outputs.openjdk_docs }}" = "true" ]; then
+              SELECTED+=("$TARGET_OPENJDK_25")
             fi
-            if [ "${{ steps.filter.outputs.openjdk25 }}" = "true" ]; then
-              IMAGES+=("openjdk25")
+            if [ "${{ steps.filter.outputs.openjdk_jre_21 }}" = "true" ]; then
+              SELECTED+=("$TARGET_OPENJDK_JRE_21")
+            fi
+            if [ "${{ steps.filter.outputs.openjdk_jre_25 }}" = "true" ] || [ "${{ steps.filter.outputs.openjdk_jre_docs }}" = "true" ]; then
+              SELECTED+=("$TARGET_OPENJDK_JRE_25")
             fi
           fi
 
-          # Format array as JSON
-          if [ ${#IMAGES[@]} -eq 0 ]; then
-            echo "No image changes detected."
+          if [ ${#SELECTED[@]} -eq 0 ]; then
+            echo "No target changes detected."
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           else
-            JSON_ARRAY=$(printf '%s\n' "${IMAGES[@]}" | jq -R . | jq -s -c .)
-            echo "Selected images to build: $JSON_ARRAY"
+            JSON_ARRAY=$(printf '%s\n' "${SELECTED[@]}" | jq -s -c .)
+            echo "Selected matrix targets: $JSON_ARRAY"
             echo "matrix=$JSON_ARRAY" >> "$GITHUB_OUTPUT"
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
 
   # ----------------------------------------------------------------------------
   # Job 2: Build, Scan & Publish
-  # Runs concurrently across the detected matrix of images
+  # Executes across the detected matrix of [repo x version] targets
   # ----------------------------------------------------------------------------
   build-scan-publish:
-    name: Build & Publish (${{ matrix.image }})
+    name: Build & Publish (${{ matrix.id }})
     needs: detect-changes
     if: needs.detect-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
       fail-fast: false
 
     env:
@@ -145,7 +188,6 @@ jobs:
         run: |
           if [ -f .dockerenv ]; then
             echo "Loading configuration from .dockerenv"
-            # Strip comments and export key-values to GITHUB_ENV
             grep -E '^[A-Za-z0-9_]+=' .dockerenv >> "$GITHUB_ENV"
           else
             echo "::warning ::.dockerenv file not found, using defaults"
@@ -154,34 +196,16 @@ jobs:
       - name: Resolve Image Metadata and Tags
         id: meta
         run: |
-          IMAGE_NAME="${{ matrix.image }}"
           NAMESPACE="${DOCKERHUB_NAMESPACE:-sutrira}"
-          REPO="${NAMESPACE}/${IMAGE_NAME}"
+          REPO="${NAMESPACE}/${{ matrix.repo }}"
+          VERSION="${{ matrix.version }}"
+          PKG_VERSION="${{ matrix.pkg_version }}"
 
-          # Extract image-specific tag from .dockerenv
-          case "$IMAGE_NAME" in
-            openjdk17)
-              VERSION_TAG="${OPENJDK17_TAG:-17.0.20_p8-r0}"
-              ;;
-            openjdk21)
-              VERSION_TAG="${OPENJDK21_TAG:-21.0.12_p8-r0}"
-              ;;
-            openjdk25)
-              VERSION_TAG="${OPENJDK25_TAG:-25.0.4_p7-r0}"
-              ;;
-            *)
-              VERSION_TAG="latest"
-              ;;
-          esac
+          # Clean tags only - no -alpine suffix as all images are 100% Alpine based
+          TAGS="${REPO}:${VERSION},${REPO}:${PKG_VERSION}"
 
-          # Extract major version number (e.g. 17, 21, 25)
-          MAJOR="${IMAGE_NAME//[!0-9]/}"
-
-          # Compose tag list including version tag, major tag, and latest
-          if [ -n "$MAJOR" ]; then
-            TAGS="${REPO}:${VERSION_TAG},${REPO}:${MAJOR},${REPO}:latest"
-          else
-            TAGS="${REPO}:${VERSION_TAG},${REPO}:latest"
+          if [ "${{ matrix.is_latest }}" = "true" ]; then
+            TAGS="${TAGS},${REPO}:latest"
           fi
 
           # Determine whether to push
@@ -193,7 +217,6 @@ jobs:
           fi
 
           echo "repo=$REPO" >> "$GITHUB_OUTPUT"
-          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
           echo "base_image=${BASE_IMAGE:-alpine:3.24.1}" >> "$GITHUB_OUTPUT"
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
           echo "should_push=$SHOULD_PUSH" >> "$GITHUB_OUTPUT"
@@ -202,9 +225,10 @@ jobs:
           echo "ignore_unfixed=${TRIVY_IGNORE_UNFIXED:-true}" >> "$GITHUB_OUTPUT"
 
           echo "Repository:   $REPO"
-          echo "Version Tag:  $VERSION_TAG"
+          echo "Target ID:    ${{ matrix.id }}"
           echo "Base Image:   ${BASE_IMAGE:-alpine:3.24.1}"
-          echo "All Tags:     $TAGS"
+          echo "Tags:         $TAGS"
+          echo "Platforms:    ${DEFAULT_PLATFORMS:-linux/amd64,linux/arm64}"
           echo "Should Push:  $SHOULD_PUSH"
 
       - name: Set up QEMU (Multi-Architecture)
@@ -224,20 +248,20 @@ jobs:
       - name: Build local image for vulnerability scan
         uses: docker/build-push-action@v7
         with:
-          context: ./${{ matrix.image }}
-          file: ./${{ matrix.image }}/Dockerfile
+          context: ./${{ matrix.dir }}
+          file: ./${{ matrix.dir }}/Dockerfile
           load: true
-          tags: local/${{ matrix.image }}:scan
+          tags: local/${{ matrix.id }}:scan
           build-args: |
             BASE_IMAGE=${{ steps.meta.outputs.base_image }}
-            OPENJDK_VERSION=${{ steps.meta.outputs.version_tag }}
+            OPENJDK_VERSION=${{ matrix.pkg_version }}
           cache-from: type=gha
 
       # Step B: Run Trivy Vulnerability Scanner
       - name: Run Trivy Vulnerability Scanner
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: local/${{ matrix.image }}:scan
+          image-ref: local/${{ matrix.id }}:scan
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: ${{ steps.meta.outputs.severity }}
@@ -254,26 +278,26 @@ jobs:
       - name: Build and Push Multi-Arch Image
         uses: docker/build-push-action@v7
         with:
-          context: ./${{ matrix.image }}
-          file: ./${{ matrix.image }}/Dockerfile
+          context: ./${{ matrix.dir }}
+          file: ./${{ matrix.dir }}/Dockerfile
           platforms: ${{ steps.meta.outputs.platforms }}
           push: ${{ steps.meta.outputs.should_push == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             BASE_IMAGE=${{ steps.meta.outputs.base_image }}
-            OPENJDK_VERSION=${{ steps.meta.outputs.version_tag }}
+            OPENJDK_VERSION=${{ matrix.pkg_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # Step E: Synchronize README.md to Docker Hub Description
       - name: Sync README to Docker Hub Description
-        if: steps.meta.outputs.should_push == 'true'
+        if: steps.meta.outputs.should_push == 'true' && steps.meta.outputs.repo != ''
         continue-on-error: true
         uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ steps.meta.outputs.repo }}
-          readme-filepath: ./${{ matrix.image }}/README.md
-          short-description: "Lightweight, multi-architecture OpenJDK ${{ matrix.image }} on Alpine Linux 3.24.1"
+          readme-filepath: ./${{ matrix.repo }}/README.md
+          short-description: "Lightweight, multi-architecture ${{ matrix.repo }} on Alpine Linux 3.24.1"
           enable-url-completion: true
