@@ -22,7 +22,7 @@ NAMESPACE="${DOCKERHUB_NAMESPACE:-sutrira}"
 REPO_NAME="${REPO_JRE:-openjdk-jre}"
 VERSION_TAG="25"
 PKG_TAG="${JAVA25_VERSION:-25.0.4_p7-r0}"
-BASE_IMG="${BASE_IMAGE:-alpine:3.24.1}"
+BASE_IMG="${BASE_IMAGE:-alpine:3.24.2}"
 PLATFORMS="${DEFAULT_PLATFORMS:-linux/amd64,linux/arm64}"
 
 # Default to --push if no flags provided; allow passing arguments like --load or --push

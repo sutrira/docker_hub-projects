@@ -5,7 +5,7 @@
 [![GitHub Repository](https://img.shields.io/badge/source-sutrira%2Fdocker__hub--projects-blue?style=flat-square&logo=github)](https://github.com/sutrira/docker_hub-projects)
 [![License: GPL-2.0-with-classpath-exception](https://img.shields.io/badge/License-GPL%202.0%20w%2F%20Classpath-blue.svg?style=flat-square)](https://openjdk.org/legal/gplv2+ce.html)
 
-Multi-architecture, production-ready container images for the **Java Development Kit (JDK)** built entirely on **Alpine Linux 3.24.1**. Provides modern, fully-featured LTS JDK runtimes including compilers (`javac`), modular linkers (`jlink`), diagnostic utilities (`jstack`, `jmap`, `javap`), and developer tools packaged inside a hardened, ultra-lean Alpine footprint.
+Multi-architecture, production-ready container images for the **Java Development Kit (JDK)** built entirely on **Alpine Linux 3.24.2**. Provides modern, fully-featured LTS JDK runtimes including compilers (`javac`), modular linkers (`jlink`), diagnostic utilities (`jstack`, `jmap`, `javap`), and developer tools packaged inside a hardened, ultra-lean Alpine footprint.
 
 ---
 
@@ -15,8 +15,8 @@ All images are published for both `linux/amd64` (x86_64) and `linux/arm64` (Appl
 
 | Tag | OpenJDK Version | Release Status | Base OS | Dockerfile Source |
 | :--- | :--- | :--- | :--- | :--- |
-| **`25`**, **`25.0.4_p7-r0`**, **`latest`** | `25.0.4_p7-r0` | **Latest LTS** | Alpine 3.24.1 | [openjdk/25/Dockerfile](https://github.com/sutrira/docker_hub-projects/blob/main/openjdk/25/Dockerfile) |
-| **`21`**, **`21.0.12_p8-r0`** | `21.0.12_p8-r0` | Established LTS | Alpine 3.24.1 | [openjdk/21/Dockerfile](https://github.com/sutrira/docker_hub-projects/blob/main/openjdk/21/Dockerfile) |
+| **`25`**, **`25.0.4_p7-r0`**, **`latest`** | `25.0.4_p7-r0` | **Latest LTS** | Alpine 3.24.2 | [openjdk/25/Dockerfile](https://github.com/sutrira/docker_hub-projects/blob/main/openjdk/25/Dockerfile) |
+| **`21`**, **`21.0.12_p8-r0`** | `21.0.12_p8-r0` | Established LTS | Alpine 3.24.2 | [openjdk/21/Dockerfile](https://github.com/sutrira/docker_hub-projects/blob/main/openjdk/21/Dockerfile) |
 
 > [!NOTE]
 > **No `-alpine` Tag Suffix Needed**:

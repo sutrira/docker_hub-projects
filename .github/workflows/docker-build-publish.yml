@@ -217,7 +217,7 @@ jobs:
           fi
 
           echo "repo=$REPO" >> "$GITHUB_OUTPUT"
-          echo "base_image=${BASE_IMAGE:-alpine:3.24.1}" >> "$GITHUB_OUTPUT"
+          echo "base_image=${BASE_IMAGE:-alpine:3.24.2}" >> "$GITHUB_OUTPUT"
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
           echo "should_push=$SHOULD_PUSH" >> "$GITHUB_OUTPUT"
           echo "platforms=${DEFAULT_PLATFORMS:-linux/amd64,linux/arm64}" >> "$GITHUB_OUTPUT"
@@ -226,7 +226,7 @@ jobs:
 
           echo "Repository:   $REPO"
           echo "Target ID:    ${{ matrix.id }}"
-          echo "Base Image:   ${BASE_IMAGE:-alpine:3.24.1}"
+          echo "Base Image:   ${BASE_IMAGE:-alpine:3.24.2}"
           echo "Tags:         $TAGS"
           echo "Platforms:    ${DEFAULT_PLATFORMS:-linux/amd64,linux/arm64}"
           echo "Should Push:  $SHOULD_PUSH"
@@ -299,5 +299,5 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ steps.meta.outputs.repo }}
           readme-filepath: ./${{ matrix.repo }}/README.md
-          short-description: "Lightweight, multi-architecture ${{ matrix.repo }} on Alpine Linux 3.24.1"
+          short-description: "Lightweight, multi-architecture ${{ matrix.repo }} on Alpine Linux 3.24.2"
           enable-url-completion: true

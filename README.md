@@ -7,7 +7,7 @@
 
 Source repository for multi-architecture, enterprise-grade Java container images published to [Docker Hub (`sutrira`)](https://hub.docker.com/orgs/sutrira).
 
-All images in this repository are consolidated into **2 purpose-built repositories** based 100% on **Alpine Linux 3.24.1** for minimal disk footprint, zero bloat, and maximum developer agility across both `linux/amd64` (x86_64) and `linux/arm64` (Apple Silicon, ARM servers).
+All images in this repository are consolidated into **2 purpose-built repositories** based 100% on **Alpine Linux 3.24.2** for minimal disk footprint, zero bloat, and maximum developer agility across both `linux/amd64` (x86_64) and `linux/arm64` (Apple Silicon, ARM servers).
 
 ---
 
@@ -72,21 +72,21 @@ As OpenJDK 25 has been released as the new Long-Term Support (LTS) version, **su
 ├── openjdk/                             # sutrira/openjdk (Full JDK)
 │   ├── README.md                        # Synced to sutrira/openjdk Docker Hub description
 │   ├── 21/
-│   │   ├── Dockerfile                   # OpenJDK 21 JDK on Alpine 3.24.1
+│   │   ├── Dockerfile                   # OpenJDK 21 JDK on Alpine 3.24.2
 │   │   ├── .dockerignore
 │   │   └── build.sh                     # Local multi-arch build script for 21
 │   └── 25/
-│       ├── Dockerfile                   # OpenJDK 25 JDK on Alpine 3.24.1
+│       ├── Dockerfile                   # OpenJDK 25 JDK on Alpine 3.24.2
 │       ├── .dockerignore
 │       └── build.sh                     # Local multi-arch build script for 25
 ├── openjdk-jre/                         # sutrira/openjdk-jre (Headless JRE)
 │   ├── README.md                        # Synced to sutrira/openjdk-jre Docker Hub description
 │   ├── 21/
-│   │   ├── Dockerfile                   # OpenJDK 21 Headless JRE on Alpine 3.24.1
+│   │   ├── Dockerfile                   # OpenJDK 21 Headless JRE on Alpine 3.24.2
 │   │   ├── .dockerignore
 │   │   └── build.sh                     # Local multi-arch build script for 21 JRE
 │   └── 25/
-│       ├── Dockerfile                   # OpenJDK 25 Headless JRE on Alpine 3.24.1
+│       ├── Dockerfile                   # OpenJDK 25 Headless JRE on Alpine 3.24.2
 │       ├── .dockerignore
 │       └── build.sh                     # Local multi-arch build script for 25 JRE
 ├── LICENSE

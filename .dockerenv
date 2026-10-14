@@ -15,8 +15,8 @@ GITHUB_HTTP_URL=https://github.com/sutrira/docker_hub-projects
 MAINTAINER=sutrira
 
 # Base Operating System Image (100% Alpine Linux based)
-ALPINE_VERSION=3.24.1
-BASE_IMAGE=alpine:3.24.1
+ALPINE_VERSION=3.24.2
+BASE_IMAGE=alpine:3.24.2
 
 # Target Multi-Architecture Platforms
 DEFAULT_PLATFORMS=linux/amd64,linux/arm64
@@ -28,7 +28,7 @@ REPO_JDK=openjdk
 REPO_JRE=openjdk-jre
 
 # ------------------------------------------------------------------------------
-# Active LTS Releases & Package Versions (Alpine 3.24.1 APK channel)
+# Active LTS Releases & Package Versions (Alpine 3.24.2 APK channel)
 # ------------------------------------------------------------------------------
 # Default LTS Version (receives the :latest tag)
 LATEST_LTS=25

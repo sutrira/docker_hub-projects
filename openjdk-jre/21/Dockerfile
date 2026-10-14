@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
-ARG BASE_IMAGE=alpine:3.24.1
+ARG BASE_IMAGE=alpine:3.24.2
 
 FROM ${BASE_IMAGE}
 
 ARG OPENJDK_VERSION=21.0.12_p8-r0
 
 LABEL org.opencontainers.image.title="OpenJDK 21 Headless JRE on Alpine Linux" \
-      org.opencontainers.image.description="Minimal OpenJDK 21 Headless JRE runtime image on Alpine Linux 3.24.1" \
+      org.opencontainers.image.description="Minimal OpenJDK 21 Headless JRE runtime image on Alpine Linux 3.24.2" \
       org.opencontainers.image.version="${OPENJDK_VERSION}" \
       org.opencontainers.image.authors="sutrira" \
       org.opencontainers.image.source="https://github.com/sutrira/docker_hub-projects" \
